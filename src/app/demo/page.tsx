@@ -300,7 +300,7 @@ export default function TiDBAIDemo() {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                          ${product.price.toFixed(2)}
+                          ${typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(product.price).toFixed(2)}
                         </div>
                         <div className="text-sm text-zinc-500">
                           {product.stock_quantity} in stock
@@ -348,7 +348,7 @@ export default function TiDBAIDemo() {
                   </div>
                   <div>
                     <div className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-                      {analytics.overallMetrics.avg_search_time_ms?.toFixed(0)}ms
+                      {analytics.overallMetrics.avg_search_time_ms ? parseFloat(String(analytics.overallMetrics.avg_search_time_ms)).toFixed(0) : '0'}ms
                     </div>
                     <div className="text-sm text-zinc-500">Avg Response Time</div>
                   </div>
@@ -366,7 +366,7 @@ export default function TiDBAIDemo() {
                     <div key={stat.search_type} className="flex justify-between items-center p-3 bg-zinc-100 dark:bg-zinc-900 rounded">
                       <Badge>{stat.search_type}</Badge>
                       <span className="text-sm">
-                        {stat.total_searches} searches • {stat.avg_response_time_ms.toFixed(0)}ms avg • {stat.avg_results_count.toFixed(1)} results avg
+                        {stat.total_searches} searches • {parseFloat(String(stat.avg_response_time_ms)).toFixed(0)}ms avg • {parseFloat(String(stat.avg_results_count)).toFixed(1)} results avg
                       </span>
                     </div>
                   ))}
@@ -385,7 +385,7 @@ export default function TiDBAIDemo() {
                       <div>
                         <div className="font-semibold">{stat.category}</div>
                         <div className="text-sm text-zinc-500">
-                          {stat.total_products} products • {stat.total_stock} units • ${stat.avg_price.toFixed(2)} avg
+                          {stat.total_products} products • {stat.total_stock} units • ${parseFloat(String(stat.avg_price)).toFixed(2)} avg
                         </div>
                       </div>
                       {stat.low_stock_items > 0 && (
