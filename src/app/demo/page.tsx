@@ -75,6 +75,9 @@ export default function TiDBAIDemo() {
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [recommendations, setRecommendations] = useState<any>(null);
+  const [trending, setTrending] = useState<any>(null);
 
   const handleVectorSearch = async () => {
     if (!query.trim()) return;
@@ -149,6 +152,40 @@ export default function TiDBAIDemo() {
     }
   };
 
+  const loadRecommendations = async (productId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/recommendations?productId=${productId}&limit=5`);
+      if (!response.ok) {
+        throw new Error('Failed to load recommendations');
+      }
+      const data = await response.json();
+      setRecommendations(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTrending = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/trending');
+      if (!response.ok) {
+        throw new Error('Failed to load trending');
+      }
+      const data = await response.json();
+      setTrending(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black p-8">
       <div className="max-w-7xl mx-auto">
@@ -169,9 +206,11 @@ export default function TiDBAIDemo() {
         </header>
 
         <Tabs defaultValue="vector" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="vector">Vector Search</TabsTrigger>
             <TabsTrigger value="hybrid">Hybrid Search</TabsTrigger>
+            <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+            <TabsTrigger value="trending">Trending</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
@@ -252,6 +291,145 @@ export default function TiDBAIDemo() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="recommendations" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>AI-Powered Product Recommendations</CardTitle>
+                <CardDescription>
+                  Find similar products using vector embeddings - TiDB calculates cosine similarity in real-time
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {searchResult && searchResult.results.length > 0 && (
+                  <div>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                      Select a product from your search results to see similar items:
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {searchResult.results.slice(0, 6).map((product) => (
+                        <Button
+                          key={product.id}
+                          variant={selectedProductId === product.id ? "default" : "outline"}
+                          onClick={() => {
+                            setSelectedProductId(product.id);
+                            loadRecommendations(product.id);
+                          }}
+                          className="h-auto py-3 text-left justify-start"
+                          disabled={loading}
+                        >
+                          <div className="truncate">
+                            <div className="font-medium text-sm truncate">{product.name}</div>
+                            <div className="text-xs opacity-70">${typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(product.price).toFixed(2)}</div>
+                          </div>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!searchResult && (
+                  <div className="text-center py-8">
+                    <p className="text-zinc-500">Run a search first to see product recommendations</p>
+                  </div>
+                )}
+
+                {recommendations && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-3">
+                      Products similar to &quot;{recommendations.productName}&quot;
+                    </h3>
+                    <div className="space-y-3">
+                      {recommendations.recommendations.map((rec: any) => (
+                        <Card key={rec.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="font-medium">{rec.name}</div>
+                                <div className="text-sm text-zinc-500 mt-1">{rec.category}</div>
+                                <div className="text-xs text-zinc-400 mt-2 line-clamp-2">{rec.description}</div>
+                              </div>
+                              <div className="text-right ml-4">
+                                <Badge variant="outline" className="mb-2">
+                                  {(rec.similarity_score * 100).toFixed(1)}% match
+                                </Badge>
+                                <div className="font-bold">${typeof rec.price === 'number' ? rec.price.toFixed(2) : parseFloat(rec.price).toFixed(2)}</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="trending" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Trending Products & Insights</CardTitle>
+                <CardDescription>
+                  Real-time analysis of search patterns and product popularity using TiDB's analytical capabilities
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={loadTrending} disabled={loading} className="mb-4">
+                  {loading ? 'Loading...' : 'Load Trending Data'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {trending && (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Hot Products</CardTitle>
+                    <CardDescription>Most searched products in the last 24 hours</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {trending.trendingProducts.slice(0, 5).map((product: any, index: number) => (
+                        <div key={product.id} className="flex items-center gap-4 p-3 bg-zinc-100 dark:bg-zinc-900 rounded">
+                          <div className="text-2xl font-bold text-zinc-400 w-8">#{index + 1}</div>
+                          <div className="flex-1">
+                            <div className="font-medium">{product.name}</div>
+                            <div className="text-sm text-zinc-500">{product.category} • ${product.price.toFixed(2)}</div>
+                          </div>
+                          <div className="text-right">
+                            <Badge>{product.recent_searches} recent</Badge>
+                            <div className="text-xs text-zinc-500 mt-1">{product.mention_count} total</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Category Trends</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {trending.categoryTrends.map((cat: any) => (
+                        <div key={cat.category} className="flex justify-between items-center p-2">
+                          <span className="font-medium">{cat.category}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-zinc-500">{cat.total_searches} searches</span>
+                            {cat.growth_rate > 0 && (
+                              <Badge variant="default">↑ {cat.growth_rate.toFixed(0)}%</Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">

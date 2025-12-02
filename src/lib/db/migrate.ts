@@ -4,8 +4,13 @@ import db from './db';
 import { sql } from 'kysely';
 
 export async function runMigrations() {
-  const migrationPath = join(process.cwd(), 'src/lib/db/migrations/001_create_tables.sql');
-  const migrationSQL = readFileSync(migrationPath, 'utf-8');
+  const migrationsDir = join(process.cwd(), 'src/lib/db/migrations');
+  const migrationFiles = ['001_create_tables.sql', '002_add_features.sql'];
+
+  for (const filename of migrationFiles) {
+    console.log(`\n📦 Running migration: ${filename}`);
+    const migrationPath = join(migrationsDir, filename);
+    const migrationSQL = readFileSync(migrationPath, 'utf-8');
 
   // Remove comments and split by semicolon
   const cleanSQL = migrationSQL
@@ -28,7 +33,9 @@ export async function runMigrations() {
     } catch (error) {
       // Ignore "already exists" errors
       const errorMessage = error instanceof Error ? error.message : '';
-      if (!errorMessage.includes('already exists') && !errorMessage.includes('Duplicate')) {
+      if (!errorMessage.includes('already exists') &&
+          !errorMessage.includes('already exist') &&
+          !errorMessage.includes('Duplicate')) {
         console.error(`Migration error on statement ${i + 1}:`, errorMessage);
         console.error('Statement:', statement.substring(0, 100));
         throw error;
@@ -38,7 +45,9 @@ export async function runMigrations() {
     }
   }
 
-  console.log('Migrations completed successfully!');
+  }
+
+  console.log('\n✅ All migrations completed successfully!');
 }
 
 // Run migrations if this file is executed directly

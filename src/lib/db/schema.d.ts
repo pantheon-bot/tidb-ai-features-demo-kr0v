@@ -27,4 +27,30 @@ export interface DB {
     response_time_ms: number;
     created_at: Generated<Date>;
   };
+
+  // Product views tracking
+  product_views: {
+    id: Generated<number>;
+    product_id: number;
+    search_query_id: number | null;
+    viewed_at: Generated<Date>;
+  };
+
+  // Search sessions
+  search_sessions: {
+    id: Generated<number>;
+    session_id: string;
+    queries_count: number;
+    started_at: Generated<Date>;
+    last_activity: Generated<Date>;
+  };
+
+  // Product similarity cache
+  product_similarities: {
+    id: Generated<number>;
+    product_id: number;
+    similar_product_id: number;
+    similarity_score: number;
+    calculated_at: Generated<Date>;
+  };
 }
