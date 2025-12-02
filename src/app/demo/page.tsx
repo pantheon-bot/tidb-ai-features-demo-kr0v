@@ -55,6 +55,15 @@ interface AnalyticsData {
     total_searches: number;
     avg_search_time_ms: number;
   };
+  topSearchTerms?: Array<{
+    query_text: string;
+    search_count: number;
+    avg_results: number;
+  }>;
+  performanceMetrics?: {
+    min_response_time: number;
+    max_response_time: number;
+  };
 }
 
 export default function TiDBAIDemo() {
@@ -396,6 +405,142 @@ export default function TiDBAIDemo() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Search History</CardTitle>
+                <CardDescription>
+                  Real-time search activity showing queries as they happen (OLTP writes with instant OLAP reads)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {analytics.recentSearches.length > 0 ? (
+                  <div className="space-y-2">
+                    {analytics.recentSearches.map((search, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-3 bg-zinc-100 dark:bg-zinc-900 rounded"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-zinc-900 dark:text-zinc-50">
+                            &quot;{search.query_text}&quot;
+                          </div>
+                          <div className="text-xs text-zinc-500">
+                            {new Date(search.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                        <Badge variant="secondary">{search.search_type}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500">No searches yet. Try running a search above!</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Query Performance Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Fastest Query</span>
+                      <Badge variant="outline">
+                        {analytics.performanceMetrics
+                          ? `${parseFloat(String(analytics.performanceMetrics.min_response_time)).toFixed(0)}ms`
+                          : analytics.searchTypeStats.length > 0
+                          ? `${Math.min(...analytics.searchTypeStats.map(s => parseFloat(String(s.avg_response_time_ms)))).toFixed(0)}ms`
+                          : 'N/A'
+                        }
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Average Query</span>
+                      <Badge variant="outline">
+                        {analytics.overallMetrics.avg_search_time_ms
+                          ? `${parseFloat(String(analytics.overallMetrics.avg_search_time_ms)).toFixed(0)}ms`
+                          : 'N/A'
+                        }
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Slowest Query</span>
+                      <Badge variant="outline">
+                        {analytics.performanceMetrics
+                          ? `${parseFloat(String(analytics.performanceMetrics.max_response_time)).toFixed(0)}ms`
+                          : analytics.searchTypeStats.length > 0
+                          ? `${Math.max(...analytics.searchTypeStats.map(s => parseFloat(String(s.avg_response_time_ms)))).toFixed(0)}ms`
+                          : 'N/A'
+                        }
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">Total Query Volume</span>
+                      <Badge variant="outline">{analytics.overallMetrics.total_searches}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Search Type Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {analytics.searchTypeStats.map((stat) => {
+                      const percentage = (stat.total_searches / analytics.overallMetrics.total_searches * 100).toFixed(1);
+                      return (
+                        <div key={stat.search_type} className="space-y-1">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-zinc-600 dark:text-zinc-400 capitalize">{stat.search_type}</span>
+                            <span className="font-medium">{percentage}%</span>
+                          </div>
+                          <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 transition-all duration-300"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {analytics.topSearchTerms && analytics.topSearchTerms.length > 0 && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle>Top Search Terms</CardTitle>
+                  <CardDescription>
+                    Most frequently searched queries with their performance metrics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {analytics.topSearchTerms.map((term, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-3 bg-zinc-100 dark:bg-zinc-900 rounded"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">&quot;{term.query_text}&quot;</div>
+                          <div className="text-xs text-zinc-500">
+                            Avg {parseFloat(String(term.avg_results)).toFixed(1)} results per search
+                          </div>
+                        </div>
+                        <Badge>{term.search_count} searches</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>

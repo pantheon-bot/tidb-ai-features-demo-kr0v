@@ -77,12 +77,42 @@ export async function GET() {
       LIMIT 24
     `.execute(db);
 
+    // 6. Top search terms
+    const topSearchTerms = await sql<{
+      query_text: string;
+      search_count: number;
+      avg_results: number;
+    }>`
+      SELECT
+        query_text,
+        COUNT(*) as search_count,
+        AVG(results_count) as avg_results
+      FROM search_queries
+      GROUP BY query_text
+      ORDER BY search_count DESC
+      LIMIT 5
+    `.execute(db);
+
+    // 7. Performance metrics
+    const performanceMetrics = await sql<{
+      min_response_time: number;
+      max_response_time: number;
+    }>`
+      SELECT
+        MIN(response_time_ms) as min_response_time,
+        MAX(response_time_ms) as max_response_time
+      FROM search_queries
+      WHERE response_time_ms IS NOT NULL
+    `.execute(db);
+
     return NextResponse.json({
       searchTypeStats: searchTypeStats.rows,
       recentSearches: recentSearches,
       inventoryStats: inventoryStats.rows,
       overallMetrics: overallMetrics.rows[0],
       searchTrend: searchTrend.rows,
+      topSearchTerms: topSearchTerms.rows,
+      performanceMetrics: performanceMetrics.rows[0],
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
